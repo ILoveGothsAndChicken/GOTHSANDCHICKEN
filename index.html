@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Oblivion - Gorilla Tag GUI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #f1f1f1;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 40px;
+            background-color: #1f1f1f;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 80px;
+            line-height: 1.6;
+        }
+
+        .image-stack {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 60px;
+        }
+
+        .image-hover-area {
+            position: relative;
+            display: inline-block;
+        }
+
+        .main-image {
+            width: 100%;
+            max-width: 1500px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+            animation: fadeIn 1s forwards;
+            opacity: 0;
+            transition: box-shadow 0.5s ease, transform 0.3s ease;
+        }
+
+        .overlay-image {
+            position: absolute;
+            bottom: -5px;
+            right: -20px;
+            width: 360px;
+            transform: rotate(-10deg);
+            border-radius: 10px;
+            box-shadow: none;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .image-hover-area:hover .main-image {
+            box-shadow: 0 0 25px rgba(255, 105, 180, 0.5);
+            transform: scale(1.05);
+        }
+
+        .image-hover-area:hover .overlay-image {
+            opacity: 1;
+            transform: rotate(-15deg) scale(1);
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .buy-button {
+            display: inline-block;
+            margin-top: 50px;
+            padding: 15px 35px;
+            font-size: 20px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .buy-button:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+
+        .content-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 50px;
+        }
+
+        .content-text {
+            flex: 1;
+            padding-right: 20px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .content-image {
+            max-width: 400px;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+        }
+
+        .content-section.trusted .content-text {
+            flex: 0.6;
+            padding-right: 20px;
+        }
+
+        .content-section.trusted .content-image {
+            flex: 1.4;
+            max-width: none;
+            width: 50%;
+        }
+
+        .form-container {
+            margin-top: 30px;
+            display: none;
+            text-align: center;
+        }
+
+        .form-container input,
+        .form-container button {
+            padding: 10px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            background-color: #333;
+            color: white;
+            width: 250px;
+        }
+
+        .form-container button {
+            background-color: #28a745;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-container button:hover {
+            background-color: #218838;
+        }
+
+        .message-container {
+            margin-top: 30px;
+            display: none;
+            text-align: center;
+        }
+
+        .message-container p {
+            font-size: 20px;
+            color: #f1f1f1;
+        }
+
+        .redirect-button {
+            padding: 15px 35px;
+            font-size: 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .redirect-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .discord-image {
+            width: 65%;
+            max-width: 350px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease;
+        }
+
+        .discord-image:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Oblivion - Powerful GUI for Gorilla Tag</h1>
+        <p>Take your Gorilla Tag experience to the next level with Oblivion. Feature-rich, intuitive, and totally safe to use.</p>
+
+        <div class="image-stack">
+            <div class="image-hover-area">
+                <img class="main-image" src="https://media.discordapp.net/attachments/1233175869535817779/1370310884479467530/Oblivion_Movement.webp?ex=681fb1b6&is=681e6036&hm=6b50ca774d46985c0518c745400314d0aa7d3ddb4071d5ce447274334c6a5ab0&=&format=webp" alt="Oblivion GUI Preview 1">
+                <img class="overlay-image" src="https://media.discordapp.net/attachments/1233175869535817779/1370310884894969897/Oblivion_Comp.webp?ex=681fb1b6&is=681e6036&hm=915dfe7f979f558f243af3a3132f22eb2286780360c801b5cfad8009005b90f7&=&format=webp" alt="Oblivion GUI Preview 2">
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="content-text">
+                <h2>Why Choose Oblivion?</h2>
+                <p>Oblivion is designed to give you an advantage in Gorilla Tag. With a ton of powerful features, it’s your all-in-one solution for enhancing gameplay. Whether you're looking to customize your experience or boost your performance, Oblivion has got you covered.</p>
+            </div>
+            <img class="content-image" src="https://media.discordapp.net/attachments/1233175869535817779/1370310884894969897/Oblivion_Comp.webp?ex=681fb1b6&is=681e6036&hm=915dfe7f979f558f243af3a3132f22eb2286780360c801b5cfad8009005b90f7&=&format=webp" alt="Oblivion GUI Preview 1">
+        </div>
+
+        <div class="content-section trusted">
+            <div class="content-text">
+                <h2>Is Oblivion trusted?</h2>
+                <p>“+rep If you're looking for legit competitive mods to enhance your gameplay, you've come to the right place. It's affordable, easy to set up, and the hardworking developers are constantly updating the menu to ensure it's undetected.”</p>
+                <p>- Oblivion Buyer</p>
+            </div>
+            <img class="content-image" src="https://media.discordapp.net/attachments/1233175869535817779/1370511989625065502/image.png?ex=681fc441&is=681e72c1&hm=22364876de5d341cb312be1e5dcfd189ff33b936b31588eaeeea0e45e00fa4ef&=&format=webp&quality=lossless&width=814&height=479" alt="Oblivion GUI Vouch">
+        </div>
+
+        <div class="content-section">
+            <div class="content-text">
+                <h2>Join Our Discord Server</h2>
+                <p>Get updates, support, sneak peeks, and exclusive community content by joining the official Oblivion Discord server. Stay connected and be part of the growing community!</p>
+            </div>
+            <div>
+                <a href="https://discord.gg/tjj4TcHzbS" target="_blank">
+                    <img class="discord-image" src="https://media.discordapp.net/attachments/1233175869535817779/1370309933089689621/Oblivion.webp?ex=681fb0d3&is=681e5f53&hm=8f8abe6cd9582f958b88e85220fb31e9cb007b37eb61938314bbe6f2a4dcb338&=&format=webp" alt="Join Discord">
+                </a>
+            </div>
+        </div>
+
+        <a class="buy-button" href="javascript:void(0);" onclick="showForm()">Interested? Buy now for 650 Robux</a>
+
+        <div class="form-container" id="form-container">
+            <h3>Please enter your Roblox and Discord names</h3>
+            <form id="user-form">
+                <input type="text" id="roblox-name" placeholder="Enter Roblox Name" required>
+                <input type="text" id="discord-name" placeholder="Enter Discord Name" required>
+                <button type="button" onclick="submitForm()">Submit</button>
+            </form>
+        </div>
+
+        <div class="message-container" id="message-container">
+            <p>Thank you for your submission! You will be redirected shortly...</p>
+            <button class="redirect-button" onclick="redirectToGamePass()">Go to Game Pass</button>
+        </div>
+    </div>
+
+    <script>
+        function showForm() {
+            document.getElementById('form-container').style.display = 'block';
+        }
+
+        function submitForm() {
+            const robloxName = document.getElementById('roblox-name').value.trim();
+            const discordName = document.getElementById('discord-name').value.trim();
+
+            if (robloxName && discordName) {
+                const messageContent = `Roblox name: \`${robloxName}\` | Discord name: \`${discordName}\``;
+                const data = { content: messageContent };
+                const webhookURL = 'https://discord.com/api/webhooks/1370612548864446505/U3M8Jt30cDB1_9LMrFwFE0miKF2kTx7p1uk8QuC27-9WjRktDjQFb01cCmyF-Z2TZUMd';
+
+                fetch(webhookURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.status === 204 || response.status === 200) {
+                        document.getElementById('user-form').reset();
+                        document.getElementById('form-container').style.display = 'none';
+                        document.getElementById('message-container').style.display = 'block';
+                        setTimeout(() => redirectToGamePass(), 3000);
+                    } else {
+                        console.error("Error with the webhook response.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error sending webhook: ", error);
+                });
+            } else {
+                console.error("Form fields are empty.");
+            }
+        }
+
+        function redirectToGamePass() {
+            window.location.href = 'https://www.roblox.com/game-pass/1076194054/Oblivion';
+        }
+    </script>
+</body>
+</html>
