@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
 local aimEnabled = false
-local aimSpeed = 19 -- lower = faster
+local aimSpeed = 12 -- lower = faster
 
 local headOffset = Vector3.new(0, 0.5, 0)
 local legOffset = Vector3.new(0, 3, 0)
