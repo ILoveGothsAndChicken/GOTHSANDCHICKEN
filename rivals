@@ -1,0 +1,115 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local headOffset = Vector3.new(0, 0.5, 0)
+local legOffset = Vector3.new(0, 3, 0)
+
+local function activateTool()
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if tool then
+        tool:Activate()
+    end
+end
+
+local function createBox()
+    local outline = Drawing.new("Square")
+    outline.Visible = false
+    outline.Color = Color3.new(0, 0, 0)
+    outline.Thickness = 3
+    outline.Transparency = 1
+    outline.Filled = false
+
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.new(1, 1, 1)
+    box.Thickness = 1
+    box.Transparency = 1
+    box.Filled = false
+
+    return box, outline
+end
+
+local function boxESP(player)
+    local box, outline = createBox()
+
+    RunService.RenderStepped:Connect(function()
+        local character = player.Character
+        if character and character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("Head") and player ~= LocalPlayer and character.Humanoid.Health > 0 then
+            local rootPos, onScreen = Camera:WorldToViewportPoint(character.HumanoidRootPart.Position)
+            if onScreen then
+                local headPos = Camera:WorldToViewportPoint(character.Head.Position + headOffset)
+                local legPos = Camera:WorldToViewportPoint(character.HumanoidRootPart.Position - legOffset)
+
+                local boxHeight = headPos.Y - legPos.Y
+                local boxWidth = boxHeight / 1.5
+
+                local topLeft = Vector2.new(rootPos.X - boxWidth / 2, rootPos.Y - boxHeight / 2)
+
+                box.Size = Vector2.new(boxWidth, boxHeight)
+                box.Position = topLeft
+                box.Visible = true
+                box.Color = player.TeamColor.Color
+
+                outline.Size = box.Size
+                outline.Position = box.Position
+                outline.Visible = true
+            else
+                box.Visible = false
+                outline.Visible = false
+            end
+        else
+            box.Visible = false
+            outline.Visible = false
+        end
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        coroutine.wrap(function() boxESP(player) end)()
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    coroutine.wrap(function() boxESP(player) end)()
+end)
+
+local function getPlayerUnderMouse()
+    local targetPlayer = nil
+    local closestDist = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and not LocalPlayer:IsFriendsWith(player.UserId) then
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        targetPlayer = player
+                    end
+                end
+            end
+        end
+    end
+
+    return targetPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    local target = getPlayerUnderMouse()
+
+    if target then
+        local rightClickEvent = Instance.new("InputObject", LocalPlayer)
+        rightClickEvent.UserInputType = Enum.UserInputType.MouseButton2
+        rightClickEvent.Position = Mouse.Hit.p
+        UserInputService.InputBegan:Fire(rightClickEvent)  -- Simulating input for right-click
+        activateTool()  -- Simulate tool activation (fire weapon, etc.)
+    end
+end)
