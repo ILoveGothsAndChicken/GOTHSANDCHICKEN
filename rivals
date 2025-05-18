@@ -5,15 +5,23 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+local aimEnabled = false
+local aimSpeed = 19 -- lower = faster
+
 local headOffset = Vector3.new(0, 0.5, 0)
 local legOffset = Vector3.new(0, 3, 0)
 
-local function activateTool()
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        tool:Activate()
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = true
     end
-end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = false
+    end
+end)
 
 local function createBox()
     local outline = Drawing.new("Square")
@@ -78,8 +86,8 @@ Players.PlayerAdded:Connect(function(player)
     coroutine.wrap(function() boxESP(player) end)()
 end)
 
-local function getPlayerUnderMouse()
-    local targetPlayer = nil
+local function getClosestPlayer()
+    local closestPlayer = nil
     local closestDist = math.huge
 
     for _, player in ipairs(Players:GetPlayers()) do
@@ -92,24 +100,23 @@ local function getPlayerUnderMouse()
                     local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
                     if dist < closestDist then
                         closestDist = dist
-                        targetPlayer = player
+                        closestPlayer = player
                     end
                 end
             end
         end
     end
 
-    return targetPlayer
+    return closestPlayer
 end
 
 RunService.RenderStepped:Connect(function()
-    local target = getPlayerUnderMouse()
-
-    if target then
-        local rightClickEvent = Instance.new("InputObject", LocalPlayer)
-        rightClickEvent.UserInputType = Enum.UserInputType.MouseButton2
-        rightClickEvent.Position = Mouse.Hit.p
-        UserInputService.InputBegan:Fire(rightClickEvent)  -- Simulating input for right-click
-        activateTool()  -- Simulate tool activation (fire weapon, etc.)
+    if aimEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local screenPos = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
+            local delta = Vector2.new(screenPos.X - Mouse.X, screenPos.Y - Mouse.Y) / aimSpeed
+            mousemoverel(delta.X, delta.Y)
+        end
     end
 end)
