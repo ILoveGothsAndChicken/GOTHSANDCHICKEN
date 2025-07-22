@@ -1,3 +1,4 @@
+--JUST TO SEE IF ITS UPDATED
 local dwCamera = workspace.CurrentCamera
 local dwRunService = game:GetService("RunService")
 local dwUIS = game:GetService("UserInputService")
@@ -19,7 +20,6 @@ local settings = {
 }
 
 local fovcircle = Drawing.new("Circle")
-fovcircle.Visible = settings.Aimbot_Draw_FOV
 fovcircle.Radius = settings.Aimbot_FOV_Radius
 fovcircle.Color = settings.Aimbot_FOV_Color
 fovcircle.Thickness = 1
@@ -27,8 +27,8 @@ fovcircle.Filled = false
 fovcircle.Transparency = 1
 
 dwRunService.RenderStepped:Connect(function()
-	local mousePos = getMouseLocation()
 	fovcircle.Position = Vector2.new(dwCamera.ViewportSize.X / 2, dwCamera.ViewportSize.Y / 2)
+	fovcircle.Visible = settings.Aiming and settings.Aimbot_Draw_FOV
 end)
 
 dwUIS.InputBegan:Connect(function(i)
