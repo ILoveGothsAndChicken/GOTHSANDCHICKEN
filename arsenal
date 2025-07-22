@@ -1,4 +1,4 @@
---JUST TO SEE IF ITS UPDATED
+--1
 local dwCamera = workspace.CurrentCamera
 local dwRunService = game:GetService("RunService")
 local dwUIS = game:GetService("UserInputService")
@@ -11,10 +11,10 @@ end
 
 local settings = {
 	Aimbot = true,
-	Aiming = false,
+	Aiming = false, -- This will control the circle's visibility
 	Aimbot_AimPart = "Head",
 	Aimbot_TeamCheck = true,
-	Aimbot_Draw_FOV = true,
+	Aimbot_Draw_FOV = true, -- Keep this true, as we'll toggle visibility directly
 	Aimbot_FOV_Radius = 200,
 	Aimbot_FOV_Color = Color3.fromRGB(255, 255, 255)
 }
@@ -26,8 +26,13 @@ fovcircle.Thickness = 1
 fovcircle.Filled = false
 fovcircle.Transparency = 1
 
+-- This RenderStepped function handles the circle's position and visibility
 dwRunService.RenderStepped:Connect(function()
+	-- Always center the circle
 	fovcircle.Position = Vector2.new(dwCamera.ViewportSize.X / 2, dwCamera.ViewportSize.Y / 2)
+
+	-- Control visibility based on whether the player is aiming (right-clicking)
+	-- And also ensure Aimbot_Draw_FOV is true in settings
 	fovcircle.Visible = settings.Aiming and settings.Aimbot_Draw_FOV
 end)
 
@@ -43,6 +48,7 @@ dwUIS.InputEnded:Connect(function(i)
 	end
 end)
 
+-- Your existing aimbot logic with camera type adjustment
 dwRunService.RenderStepped:Connect(function()
 	if settings.Aiming and settings.Aimbot then
 		local closest_dist = math.huge
@@ -67,10 +73,20 @@ dwRunService.RenderStepped:Connect(function()
 		end
 
 		if closest_char then
+            -- Store original camera type to revert later
+            local originalCameraType = dwCamera.CameraType
+            
+            -- Temporarily set camera type to Scriptable for a snap
 			dwCamera.CameraType = Enum.CameraType.Scriptable
 			dwCamera.CFrame = CFrame.new(dwCamera.CFrame.Position, closest_char[settings.Aimbot_AimPart].Position)
+            
+            -- Revert camera type immediately so player input isn't locked
+            dwCamera.CameraType = originalCameraType -- Or Enum.CameraType.Custom if you always want it back to default
 		else
 			dwCamera.CameraType = Enum.CameraType.Custom
 		end
-	end
+	else
+        -- Ensure camera is always Custom when not aiming or aimbot is off
+        dwCamera.CameraType = Enum.CameraType.Custom
+    end
 end)
