@@ -1,78 +1,86 @@
--- Services
-local Camera = workspace.CurrentCamera
+-- Services 1
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+
 local LocalPlayer = Players.LocalPlayer
 
 -- Settings
-local settings = {
-    Aimbot = true,
+local Settings = {
+    Enabled = true,
     Aiming = false,
-
     AimPart = "Head",
     TeamCheck = true,
 
-    DrawFOV = true,
     FOVRadius = 200,
-    FOVColor = Color3.fromRGB(255, 255, 255)
+    FOVColor = Color3.fromRGB(255, 255, 255),
+    FOVThickness = 2
 }
 
--- FOV Circle
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Radius = settings.FOVRadius
-FOVCircle.Color = settings.FOVColor
-FOVCircle.Thickness = 1
-FOVCircle.Filled = false
-FOVCircle.Transparency = 1
-FOVCircle.Visible = true -- FORCE VISIBLE
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Input Handling
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Size = UDim2.fromOffset(Settings.FOVRadius * 2, Settings.FOVRadius * 2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = FOVCircle
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = Settings.FOVThickness
+UIStroke.Color = Settings.FOVColor
+UIStroke.Parent = FOVCircle
+
+-- Input
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        settings.Aiming = true
+        Settings.Aiming = true
     end
 end)
 
 UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        settings.Aiming = false
+        Settings.Aiming = false
     end
 end)
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
-    -- Update FOV Circle
     local mousePos = UIS:GetMouseLocation()
-    FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
-    FOVCircle.Visible = settings.DrawFOV
 
-    if not (settings.Aimbot and settings.Aiming) then
+    -- Move FOV Circle
+    FOVCircle.Position = UDim2.fromOffset(mousePos.X, mousePos.Y)
+
+    if not (Settings.Enabled and Settings.Aiming) then
         return
     end
 
-    local closestDistance = settings.FOVRadius
+    local closestDist = Settings.FOVRadius
     local closestPart = nil
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local character = player.Character
             local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local targetPart = character:FindFirstChild(settings.AimPart)
+            local part = character:FindFirstChild(Settings.AimPart)
 
-            if humanoid and humanoid.Health > 0 and targetPart then
-                if not settings.TeamCheck or player.Team ~= LocalPlayer.Team then
-                    local screenPos, onScreen =
-                        Camera:WorldToViewportPoint(targetPart.Position)
+            if humanoid and humanoid.Health > 0 and part then
+                if not Settings.TeamCheck or player.Team ~= LocalPlayer.Team then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
 
                     if onScreen then
-                        local distance =
-                            (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-
-                        if distance < closestDistance then
-                            closestDistance = distance
-                            closestPart = targetPart
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < closestDist then
+                            closestDist = dist
+                            closestPart = part
                         end
                     end
                 end
@@ -81,9 +89,6 @@ RunService.RenderStepped:Connect(function()
     end
 
     if closestPart then
-        Camera.CFrame = CFrame.new(
-            Camera.CFrame.Position,
-            closestPart.Position
-        )
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPart.Position)
     end
 end)
