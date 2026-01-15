@@ -1,22 +1,18 @@
---1
+--2
 local dwCamera = workspace.CurrentCamera
 local dwRunService = game:GetService("RunService")
 local dwUIS = game:GetService("UserInputService")
 local dwEntities = game:GetService("Players")
 local dwLocalPlayer = dwEntities.LocalPlayer
 
-local function getMouseLocation()
-	return dwUIS:GetMouseLocation()
-end
-
 local settings = {
-	Aimbot = true,
-	Aiming = false, -- This will control the circle's visibility
-	Aimbot_AimPart = "Head",
-	Aimbot_TeamCheck = true,
-	Aimbot_Draw_FOV = true, -- Keep this true, as we'll toggle visibility directly
-	Aimbot_FOV_Radius = 200,
-	Aimbot_FOV_Color = Color3.fromRGB(255, 255, 255)
+    Aimbot = true,
+    Aiming = false,
+    Aimbot_AimPart = "Head",
+    Aimbot_TeamCheck = true,
+    Aimbot_Draw_FOV = true,
+    Aimbot_FOV_Radius = 200,
+    Aimbot_FOV_Color = Color3.fromRGB(255, 255, 255)
 }
 
 local fovcircle = Drawing.new("Circle")
@@ -25,68 +21,58 @@ fovcircle.Color = settings.Aimbot_FOV_Color
 fovcircle.Thickness = 1
 fovcircle.Filled = false
 fovcircle.Transparency = 1
+fovcircle.Visible = false
 
--- This RenderStepped function handles the circle's position and visibility
-dwRunService.RenderStepped:Connect(function()
-	-- Always center the circle
-	fovcircle.Position = Vector2.new(dwCamera.ViewportSize.X / 2, dwCamera.ViewportSize.Y / 2)
-
-	-- Control visibility based on whether the player is aiming (right-clicking)
-	-- And also ensure Aimbot_Draw_FOV is true in settings
-	fovcircle.Visible = settings.Aiming and settings.Aimbot_Draw_FOV
-end)
-
+-- Input Handling
 dwUIS.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton2 then
-		settings.Aiming = true
-	end
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then
+        settings.Aiming = true
+    end
 end)
 
 dwUIS.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton2 then
-		settings.Aiming = false
-	end
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then
+        settings.Aiming = false
+    end
 end)
 
--- Your existing aimbot logic with camera type adjustment
 dwRunService.RenderStepped:Connect(function()
-	if settings.Aiming and settings.Aimbot then
-		local closest_dist = math.huge
-		local closest_char = nil
+    -- Update FOV Circle
+    local screenCenter = Vector2.new(dwCamera.ViewportSize.X / 2, dwCamera.ViewportSize.Y / 2)
+    fovcircle.Position = screenCenter
+    fovcircle.Visible = settings.Aimbot_Draw_FOV and settings.Aiming
 
-		for _, player in ipairs(dwEntities:GetPlayers()) do
-			if player ~= dwLocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild(settings.Aimbot_AimPart) then
-				if player.Character.Humanoid.Health > 0 then
-					if not settings.Aimbot_TeamCheck or player.Team ~= dwLocalPlayer.Team then
-						local pos, visible = dwCamera:WorldToViewportPoint(player.Character[settings.Aimbot_AimPart].Position)
-						if visible then
-							local mouseLocation = getMouseLocation()
-							local dist = (mouseLocation - Vector2.new(pos.X, pos.Y)).Magnitude
-							if dist < settings.Aimbot_FOV_Radius and dist < closest_dist then
-								closest_dist = dist
-								closest_char = player.Character
-							end
-						end
-					end
-				end
-			end
-		end
+    if settings.Aiming and settings.Aimbot then
+        local closest_dist = settings.Aimbot_FOV_Radius
+        local target_part = nil
 
-		if closest_char then
-            -- Store original camera type to revert later
-            local originalCameraType = dwCamera.CameraType
-            
-            -- Temporarily set camera type to Scriptable for a snap
-			dwCamera.CameraType = Enum.CameraType.Scriptable
-			dwCamera.CFrame = CFrame.new(dwCamera.CFrame.Position, closest_char[settings.Aimbot_AimPart].Position)
-            
-            -- Revert camera type immediately so player input isn't locked
-            dwCamera.CameraType = originalCameraType -- Or Enum.CameraType.Custom if you always want it back to default
-		else
-			dwCamera.CameraType = Enum.CameraType.Custom
-		end
-	else
-        -- Ensure camera is always Custom when not aiming or aimbot is off
-        dwCamera.CameraType = Enum.CameraType.Custom
+        for _, player in ipairs(dwEntities:GetPlayers()) do
+            if player ~= dwLocalPlayer and player.Character then
+                local character = player.Character
+                local target = character:FindFirstChild(settings.Aimbot_AimPart)
+                local hum = character:FindFirstChild("Humanoid")
+                
+                if target and hum and hum.Health > 0 then
+                    if not settings.Aimbot_TeamCheck or player.Team ~= dwLocalPlayer.Team then
+                        local screenPos, onScreen = dwCamera:WorldToViewportPoint(target.Position)
+                        
+                        if onScreen then
+                            -- Calculate distance from center of screen (where FOV circle is)
+                            local mag = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                            if mag < closest_dist then
+                                closest_dist = mag
+                                target_part = target
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if target_part then
+            -- Smoothly interpolate or snap the camera CFrame
+            -- We don't change CameraType to Scriptable here to avoid "locking" the player's view
+            dwCamera.CFrame = CFrame.new(dwCamera.CFrame.Position, target_part.Position)
+        end
     end
 end)
