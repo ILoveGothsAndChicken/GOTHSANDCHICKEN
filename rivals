@@ -1,4 +1,3 @@
--- Services2
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -10,84 +9,88 @@ local Mouse = LocalPlayer:GetMouse()
 local aimEnabled = false
 local aimSpeed = 0.15
 
--- INPUT TOGGLE (Right Mouse Button)
+-- Input Toggle
 UserInputService.InputBegan:Connect(function(input, gp)
-	if gp then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		aimEnabled = true
-	end
+    if gp then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = true
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		aimEnabled = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = false
+    end
 end)
 
--- PLAYER HIGHLIGHT ESP
+-- Optimized Highlight ESP
 local function addHighlight(player)
-	if player == LocalPlayer then return end
+    if player == LocalPlayer then return end
 
-	local function setup(char)
-		local h = Instance.new("Highlight")
-		h.Name = "ESPHighlight"
-		h.FillTransparency = 0.7
-		h.OutlineTransparency = 0
-		h.OutlineColor = player.TeamColor.Color
-		h.FillColor = player.TeamColor.Color
-		h.Parent = char
-	end
+    local function setup(char)
+        -- Remove old highlight if it exists
+        local existing = char:FindFirstChild("ESPHighlight")
+        if existing then existing:Destroy() end
 
-	if player.Character then
-		setup(player.Character)
-	end
+        local h = Instance.new("Highlight")
+        h.Name = "ESPHighlight"
+        h.FillTransparency = 0.7
+        h.OutlineTransparency = 0
+        -- Added safety check for TeamColor
+        local color = player.TeamColor and player.TeamColor.Color or Color3.new(1, 1, 1)
+        h.OutlineColor = color
+        h.FillColor = color
+        h.Parent = char
+    end
 
-	player.CharacterAdded:Connect(setup)
+    player.CharacterAdded:Connect(setup)
+    if player.Character then setup(player.Character) end
 end
 
+-- Initialize ESP
 for _, p in ipairs(Players:GetPlayers()) do
-	addHighlight(p)
+    addHighlight(p)
 end
-
 Players.PlayerAdded:Connect(addHighlight)
 
--- GET CLOSEST PLAYER TO MOUSE
+-- Get Closest Player (Optimized)
 local function getClosestPlayer()
-	local closest = nil
-	local closestDist = math.huge
+    local closest = nil
+    local closestDist = math.huge
 
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and not LocalPlayer:IsFriendsWith(p.UserId) then
-			local char = p.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			local hum = char and char:FindFirstChild("Humanoid")
+    for _, p in ipairs(Players:GetPlayers()) do
+        -- Removed IsFriendsWith from here to prevent lag/errors
+        if p ~= LocalPlayer then
+            local char = p.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChild("Humanoid")
 
-			if hrp and hum and hum.Health > 0 then
-				local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-				if onScreen then
-					local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-					if dist < closestDist then
-						closestDist = dist
-						closest = p
-					end
-				end
-			end
-		end
-	end
-
-	return closest
+            if hrp and hum and hum.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        closest = p
+                    end
+                end
+            end
+        end
+    end
+    return closest
 end
 
--- AIM CAMERA LOOP
+-- Aim Loop
 RunService.RenderStepped:Connect(function()
-	if aimEnabled then
-		local target = getClosestPlayer()
-		if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-			local pos = target.Character.HumanoidRootPart.Position
-			local camPos = Camera.CFrame.Position
-
-			local newCFrame = CFrame.new(camPos, pos)
-			Camera.CFrame = Camera.CFrame:Lerp(newCFrame, aimSpeed)
-		end
-	end
+    if aimEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character then
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local lookAt = CFrame.new(Camera.CFrame.Position, hrp.Position)
+                Camera.CFrame = Camera.CFrame:Lerp(lookAt, aimSpeed)
+            end
+        end
+    end
 end)
