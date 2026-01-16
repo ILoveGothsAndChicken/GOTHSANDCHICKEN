@@ -1,17 +1,17 @@
+-- Ensure we are using Lua comments (--) and not C++ (//)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
-
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
 local aimEnabled = false
-local aimSpeed = 0.15
+local aimSpeed = 0.15 -- Adjust this (0.01 to 1) for smoothness
 
--- Input Toggle
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
+-- Toggle logic
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         aimEnabled = true
     end
@@ -23,74 +23,37 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Optimized Highlight ESP
-local function addHighlight(player)
-    if player == LocalPlayer then return end
+-- Closest player function
+local function getTarget()
+    local target = nil
+    local distance = math.huge
 
-    local function setup(char)
-        -- Remove old highlight if it exists
-        local existing = char:FindFirstChild("ESPHighlight")
-        if existing then existing:Destroy() end
-
-        local h = Instance.new("Highlight")
-        h.Name = "ESPHighlight"
-        h.FillTransparency = 0.7
-        h.OutlineTransparency = 0
-        -- Added safety check for TeamColor
-        local color = player.TeamColor and player.TeamColor.Color or Color3.new(1, 1, 1)
-        h.OutlineColor = color
-        h.FillColor = color
-        h.Parent = char
-    end
-
-    player.CharacterAdded:Connect(setup)
-    if player.Character then setup(player.Character) end
-end
-
--- Initialize ESP
-for _, p in ipairs(Players:GetPlayers()) do
-    addHighlight(p)
-end
-Players.PlayerAdded:Connect(addHighlight)
-
--- Get Closest Player (Optimized)
-local function getClosestPlayer()
-    local closest = nil
-    local closestDist = math.huge
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        -- Removed IsFriendsWith from here to prevent lag/errors
-        if p ~= LocalPlayer then
-            local char = p.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChild("Humanoid")
-
-            if hrp and hum and hum.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
                 if onScreen then
-                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if dist < closestDist then
-                        closestDist = dist
-                        closest = p
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    if magnitude < distance then
+                        distance = magnitude
+                        target = v
                     end
                 end
             end
         end
     end
-    return closest
+    return target
 end
 
--- Aim Loop
+-- Main Loop
 RunService.RenderStepped:Connect(function()
     if aimEnabled then
-        local target = getClosestPlayer()
-        if target and target.Character then
-            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local lookAt = CFrame.new(Camera.CFrame.Position, hrp.Position)
-                Camera.CFrame = Camera.CFrame:Lerp(lookAt, aimSpeed)
-            end
+        local target = getTarget()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = target.Character.HumanoidRootPart.Position
+            -- Smoothly interpolate camera to target
+            local lookAt = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(lookAt, aimSpeed)
         end
     end
 end)
