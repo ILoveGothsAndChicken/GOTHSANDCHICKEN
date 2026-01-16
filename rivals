@@ -1,3 +1,8 @@
+-- Initial Print Loop
+for i = 1, 10 do
+    print("working")
+end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -11,6 +16,7 @@ local aimSpeed = 7 -- lower = faster
 local headOffset = Vector3.new(0, 0.5, 0)
 local legOffset = Vector3.new(0, 3, 0)
 
+-- Toggle Aim on Right Click
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         aimEnabled = true
@@ -52,7 +58,7 @@ local function boxESP(player)
                 local headPos = Camera:WorldToViewportPoint(character.Head.Position + headOffset)
                 local legPos = Camera:WorldToViewportPoint(character.HumanoidRootPart.Position - legOffset)
 
-                local boxHeight = headPos.Y - legPos.Y
+                local boxHeight = math.abs(headPos.Y - legPos.Y)
                 local boxWidth = boxHeight / 1.5
 
                 local topLeft = Vector2.new(rootPos.X - boxWidth / 2, rootPos.Y - boxHeight / 2)
@@ -76,16 +82,18 @@ local function boxESP(player)
     end)
 end
 
+-- Initialize ESP for existing and new players
 for _, player in ipairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
-        coroutine.wrap(function() boxESP(player) end)()
+        coroutine.wrap(boxESP)(player)
     end
 end
 
 Players.PlayerAdded:Connect(function(player)
-    coroutine.wrap(function() boxESP(player) end)()
+    coroutine.wrap(boxESP)(player)
 end)
 
+-- Find closest player to mouse
 local function getClosestPlayer()
     local closestPlayer = nil
     local closestDist = math.huge
@@ -93,8 +101,10 @@ local function getClosestPlayer()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and not LocalPlayer:IsFriendsWith(player.UserId) then
             local char = player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
+            
+            if hrp and hum and hum.Health > 0 then
                 local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                 if onScreen then
                     local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
@@ -106,17 +116,23 @@ local function getClosestPlayer()
             end
         end
     end
-
     return closestPlayer
 end
 
+-- Main Aim Loop
 RunService.RenderStepped:Connect(function()
     if aimEnabled then
         local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local screenPos = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
-            local delta = Vector2.new(screenPos.X - Mouse.X, screenPos.Y - Mouse.Y) / aimSpeed
-            mousemoverel(delta.X, delta.Y)
+            -- Using mousemoverel requires the delta between the center of the screen/mouse and target
+            local mousePos = UserInputService:GetMouseLocation()
+            local delta = (Vector2.new(screenPos.X, screenPos.Y) - mousePos) / aimSpeed
+            
+            -- mousemoverel is a function provided by most executors
+            if mousemoverel then
+                mousemoverel(delta.X, delta.Y)
+            end
         end
     end
 end)
