@@ -1,4 +1,4 @@
--- Ensure we are using Lua comments (--) and not C++ (//)
+-- Ensure the script starts with a valid Lua comment (--)1
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -7,11 +7,11 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
 local aimEnabled = false
-local aimSpeed = 0.15 -- Adjust this (0.01 to 1) for smoothness
+local aimSpeed = 0.15 
 
--- Toggle logic
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
+-- Right Click to Toggle
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         aimEnabled = true
     end
@@ -23,20 +23,25 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Closest player function
-local function getTarget()
+-- Function to find the target
+local function getClosestPlayer()
     local target = nil
-    local distance = math.huge
+    local dist = math.huge
 
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
-            if v.Character.Humanoid.Health > 0 then
-                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+    for _, p in ipairs(Players:GetPlayers()) do
+        -- Skip self, friends, and teammates
+        if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team then
+            local char = p.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChild("Humanoid")
+
+            if hrp and hum and hum.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                 if onScreen then
-                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                    if magnitude < distance then
-                        distance = magnitude
-                        target = v
+                    local mag = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    if mag < dist then
+                        dist = mag
+                        target = p
                     end
                 end
             end
@@ -48,11 +53,9 @@ end
 -- Main Loop
 RunService.RenderStepped:Connect(function()
     if aimEnabled then
-        local target = getTarget()
+        local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPos = target.Character.HumanoidRootPart.Position
-            -- Smoothly interpolate camera to target
-            local lookAt = CFrame.new(Camera.CFrame.Position, targetPos)
+            local lookAt = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
             Camera.CFrame = Camera.CFrame:Lerp(lookAt, aimSpeed)
         end
     end
