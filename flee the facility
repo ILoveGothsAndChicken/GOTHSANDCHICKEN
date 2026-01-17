@@ -2,17 +2,17 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local enabled = true 
+local playerEspEnabled = true
+local computerEspEnabled = true
 local blueColor = Color3.fromRGB(0, 162, 255) 
 
--- Cleanly applies or updates highlights12
-local function applyHighlight(object, color)
+local function applyHighlight(object, color, espName, isEnabled)
     if not object then return end
     
-    local h = object:FindFirstChild("ESPHighlight")
+    local h = object:FindFirstChild(espName)
     if not h then
         h = Instance.new("Highlight")
-        h.Name = "ESPHighlight"
+        h.Name = espName
         h.Parent = object
     end
 
@@ -20,62 +20,59 @@ local function applyHighlight(object, color)
     h.OutlineTransparency = 0
     h.FillColor = color
     h.OutlineColor = color
-    h.Enabled = enabled 
-    h.Adornee = object -- Ensures it sticks to the right part
+    h.Enabled = isEnabled 
+    h.Adornee = object 
 end
 
--- Setup for Players
 local function setupPlayer(player)
     if player == LocalPlayer then return end
     
     local function onCharAdded(char)
-        -- Added a small wait to ensure TeamColor is assigned by the game
         task.wait(0.5)
         local color = (player.TeamColor and player.TeamColor.Color) or Color3.new(1, 1, 1)
-        applyHighlight(char, color)
+        applyHighlight(char, color, "PlayerHighlight", playerEspEnabled)
     end
 
     player.CharacterAdded:Connect(onCharAdded)
     if player.Character then onCharAdded(player.Character) end
 end
 
--- IMPROVED: Find and highlight computers
 local function highlightComputers(root)
-    -- We use a loop to find everything named ComputerTable
     for _, obj in ipairs(root:GetDescendants()) do
         if obj.Name == "ComputerTable" then
-            applyHighlight(obj, blueColor)
+            applyHighlight(obj, blueColor, "ComputerHighlight", computerEspEnabled)
         end
     end
 end
 
--- FIX FOR ROUNDS: Watch workspace more broadly
 workspace.ChildAdded:Connect(function(child)
-    -- Maps can take a few seconds to fully stream in
     task.wait(2) 
     highlightComputers(child)
 end)
 
--- Toggle Function (F1)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end 
     
     if input.KeyCode == Enum.KeyCode.F1 then
-        enabled = not enabled
-        -- Instead of searching everything, just toggle the existing highlights
+        playerEspEnabled = not playerEspEnabled
         for _, desc in ipairs(game:GetDescendants()) do
-            if desc:IsA("Highlight") and desc.Name == "ESPHighlight" then
-                desc.Enabled = enabled
+            if desc:IsA("Highlight") and desc.Name == "PlayerHighlight" then
+                desc.Enabled = playerEspEnabled
+            end
+        end
+    elseif input.KeyCode == Enum.KeyCode.F2 then
+        computerEspEnabled = not computerEspEnabled
+        for _, desc in ipairs(game:GetDescendants()) do
+            if desc:IsA("Highlight") and desc.Name == "ComputerHighlight" then
+                desc.Enabled = computerEspEnabled
             end
         end
     end
 end)
 
--- Initial Start
 for _, p in ipairs(Players:GetPlayers()) do
     setupPlayer(p)
 end
-Players.PlayerAdded:Connect(setupPlayer)
 
--- Initial scan of the whole workspace
+Players.PlayerAdded:Connect(setupPlayer)
 highlightComputers(workspace)
