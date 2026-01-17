@@ -16,7 +16,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 local aimEnabled = false
 
-local aimSpeed = 0.15
+local aimSpeed = 0.1
 
 
 
