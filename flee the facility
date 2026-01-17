@@ -1,12 +1,77 @@
--- This will print the name of every model you click on in the Output window
-local Player = game:GetService("Players").LocalPlayer
-local Mouse = Player:GetMouse()
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
-Mouse.Button1Down:Connect(function()
-    if Mouse.Target then
-        print("You clicked on: " .. Mouse.Target.Name)
-        if Mouse.Target.Parent then
-            print("The Parent model is: " .. Mouse.Target.Parent.Name)
+local enabled = true
+local blueColor = Color3.fromRGB(0, 162, 255)
+
+-- List of possible names for computers. Add more here if you find them!
+local targetNames = {"Computer", "PC", "Laptop", "Terminal", "Mainframe", "ComputerModel"}
+
+local function applyHighlight(object, color)
+    if not object or object:FindFirstChild("ESPHighlight") then return end
+
+    local h = Instance.new("Highlight")
+    h.Name = "ESPHighlight"
+    h.FillTransparency = 0.7
+    h.OutlineTransparency = 0
+    h.FillColor = color
+    h.OutlineColor = color
+    h.Enabled = enabled
+    h.Parent = object
+end
+
+-- Function to check if an object is a "computer"
+local function checkAndHighlight(obj)
+    for _, name in ipairs(targetNames) do
+        if obj.Name == name then
+            applyHighlight(obj, blueColor)
+            break
+        end
+    end
+end
+
+-- Search function that works for new rounds
+local function scanWorkspace(root)
+    for _, obj in ipairs(root:GetDescendants()) do
+        checkAndHighlight(obj)
+    end
+end
+
+-- F1 Toggle Logic
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        enabled = not enabled
+        print("ESP Toggled:", enabled)
+        for _, desc in ipairs(workspace:GetDescendants()) do
+            if desc:IsA("Highlight") and desc.Name == "ESPHighlight" then
+                desc.Enabled = enabled
+            end
+        end
+    end
+end)
+
+-- Watch for new maps/rounds
+workspace.ChildAdded:Connect(function(child)
+    task.wait(2) -- Wait for map to load
+    scanWorkspace(child)
+end)
+
+-- Initial Scan
+scanWorkspace(workspace)
+
+-----------------------------------------------------------
+-- NAME FINDER: Press "P" while looking at a computer to see its name!
+-----------------------------------------------------------
+local Mouse = LocalPlayer:GetMouse()
+UserInputService.InputBegan:Connect(function(input, proc)
+    if not proc and input.KeyCode == Enum.KeyCode.P then
+        if Mouse.Target then
+            print("--- OBJECT FOUND ---")
+            print("Name:", Mouse.Target.Name)
+            print("Parent Name:", Mouse.Target.Parent.Name)
+            print("--------------------")
         end
     end
 end)
