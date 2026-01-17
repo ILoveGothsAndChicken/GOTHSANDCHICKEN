@@ -35,22 +35,28 @@ local function setupPlayer(player)
 end
 
 -- Find and highlight computers
-local function highlightComputers()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        -- Change "Computer" to whatever your computer models are named
-        if obj.Name == "Computer" and obj:IsA("Model") then
+local function highlightComputers(root)
+    for _, obj in ipairs(root:GetDescendants()) do
+        if obj.Name == "Computer" and (obj:IsA("Model") or obj:IsA("BasePart")) then
             applyHighlight(obj, blueColor)
         end
     end
 end
 
+-- WATCH FOR NEW ROUNDS/MAPS
+-- This ensures that when a new map loads, the computers get highlighted
+workspace.ChildAdded:Connect(function(child)
+    -- Wait a tiny bit to ensure the map is fully loaded
+    task.wait(1)
+    highlightComputers(child)
+end)
+
 -- Toggle Function (F1)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end -- Don't toggle if typing in chat
+    if gameProcessed then return end 
     
     if input.KeyCode == Enum.KeyCode.F1 then
         enabled = not enabled
-        -- Update all existing highlights
         for _, desc in ipairs(workspace:GetDescendants()) do
             if desc:IsA("Highlight") and desc.Name == "ESPHighlight" then
                 desc.Enabled = enabled
@@ -59,9 +65,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Initialize
+-- Initial run for players and current objects
 for _, p in ipairs(Players:GetPlayers()) do
     setupPlayer(p)
 end
 Players.PlayerAdded:Connect(setupPlayer)
-highlightComputers()
+highlightComputers(workspace)
