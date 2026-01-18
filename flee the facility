@@ -24,20 +24,11 @@ local function applyHighlight(object, color, espName, isEnabled)
     h.Adornee = object 
 end
 
-local function setupPlayer(player)
-    if player == LocalPlayer then return end
-    
-    local function onCharAdded(char)
-        task.wait(0.5)
-        local color = (player.TeamColor and player.TeamColor.Color) or Color3.new(1, 1, 1)
-        applyHighlight(char, color, "PlayerHighlight", playerEspEnabled)
+-- Improved: Scan specifically for computers within any new object
+local function scanForComputers(root)
+    if root.Name == "ComputerTable" then
+        applyHighlight(root, blueColor, "ComputerHighlight", computerEspEnabled)
     end
-
-    player.CharacterAdded:Connect(onCharAdded)
-    if player.Character then onCharAdded(player.Character) end
-end
-
-local function highlightComputers(root)
     for _, obj in ipairs(root:GetDescendants()) do
         if obj.Name == "ComputerTable" then
             applyHighlight(obj, blueColor, "ComputerHighlight", computerEspEnabled)
@@ -45,10 +36,35 @@ local function highlightComputers(root)
     end
 end
 
-workspace.ChildAdded:Connect(function(child)
-    task.wait(2) 
-    highlightComputers(child)
+local function setupPlayer(player)
+    if player == LocalPlayer then return end
+    
+    local function onCharAdded(char)
+        task.wait(0.5)
+        -- Added a check to ensure player is still in game
+        if player.Parent then
+            local color = (player.TeamColor and player.TeamColor.Color) or Color3.new(1, 1, 1)
+            applyHighlight(char, color, "PlayerHighlight", playerEspEnabled)
+        end
+    end
+
+    player.CharacterAdded:Connect(onCharAdded)
+    if player.Character then onCharAdded(player.Character) end
+end
+
+--- ROUND PERSISTENCE LOGIC ---
+
+-- This fires whenever the map (or anything else) is added to Workspace
+workspace.DescendantAdded:Connect(function(descendant)
+    -- Using task.defer allows the object to fully "arrive" before we check its name
+    task.defer(function()
+        if descendant.Name == "ComputerTable" then
+            applyHighlight(descendant, blueColor, "ComputerHighlight", computerEspEnabled)
+        end
+    end)
 end)
+
+-------------------------------
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end 
@@ -62,7 +78,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     elseif input.KeyCode == Enum.KeyCode.F2 then
         computerEspEnabled = not computerEspEnabled
-        for _, desc in ipairs(game:GetDescendants()) do
+        -- Update all existing computer highlights
+        for _, desc in ipairs(workspace:GetDescendants()) do
             if desc:IsA("Highlight") and desc.Name == "ComputerHighlight" then
                 desc.Enabled = computerEspEnabled
             end
@@ -70,9 +87,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Initial Setup
 for _, p in ipairs(Players:GetPlayers()) do
     setupPlayer(p)
 end
 
 Players.PlayerAdded:Connect(setupPlayer)
-highlightComputers(workspace)
+scanForComputers(workspace)
