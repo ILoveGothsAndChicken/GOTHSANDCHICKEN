@@ -1,10 +1,14 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local playerEspEnabled = true
 local computerEspEnabled = true
 local blueColor = Color3.fromRGB(0, 162, 255) 
+
+-- The color the screen turns when it is NOT hacked
+local UNHACKED_SCREEN_COLOR = Color3.fromRGB(0, 162, 255) 
 
 local function applyHighlight(object, color, espName, isEnabled)
     if not object then return end
@@ -24,48 +28,62 @@ local function applyHighlight(object, color, espName, isEnabled)
     h.Adornee = object 
 end
 
--- Improved: Scan specifically for computers within any new object
-local function scanForComputers(root)
-    if root.Name == "ComputerTable" then
-        applyHighlight(root, blueColor, "ComputerHighlight", computerEspEnabled)
+-- This function checks if the computer is actually unhacked (Blue)
+local function isUnhacked(computer)
+    -- Look for the screen part. It's usually named "Screen" or "Monitor"
+    local screen = computer:FindFirstChild("Screen", true) 
+    if screen and screen:IsA("BasePart") then
+        -- We check if the blue component is high, or if it matches your blue color
+        -- Using a small margin of error (0.1) in case of slight lighting shifts
+        local color = screen.Color
+        if color.B > 0.5 and color.G < 0.5 then
+            return true
+        end
     end
-    for _, obj in ipairs(root:GetDescendants()) do
+    return false
+end
+
+-- Improved: Scan and update based on hacked status
+local function updateComputerEsp()
+    for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "ComputerTable" then
-            applyHighlight(obj, blueColor, "ComputerHighlight", computerEspEnabled)
+            local highlight = obj:FindFirstChild("ComputerHighlight")
+            
+            -- Only enable if global toggle is ON AND the computer is Blue (unhacked)
+            if computerEspEnabled and isUnhacked(obj) then
+                applyHighlight(obj, blueColor, "ComputerHighlight", true)
+            else
+                if highlight then
+                    highlight.Enabled = false
+                end
+            end
         end
     end
 end
 
+-- Update loop: Checks every 1 second if computers have been hacked
+task.spawn(function()
+    while true do
+        updateComputerEsp()
+        task.wait(1) 
+    end
+end)
+
+--- PLAYER ESP ---
 local function setupPlayer(player)
     if player == LocalPlayer then return end
-    
     local function onCharAdded(char)
         task.wait(0.5)
-        -- Added a check to ensure player is still in game
         if player.Parent then
             local color = (player.TeamColor and player.TeamColor.Color) or Color3.new(1, 1, 1)
             applyHighlight(char, color, "PlayerHighlight", playerEspEnabled)
         end
     end
-
     player.CharacterAdded:Connect(onCharAdded)
     if player.Character then onCharAdded(player.Character) end
 end
 
---- ROUND PERSISTENCE LOGIC ---
-
--- This fires whenever the map (or anything else) is added to Workspace
-workspace.DescendantAdded:Connect(function(descendant)
-    -- Using task.defer allows the object to fully "arrive" before we check its name
-    task.defer(function()
-        if descendant.Name == "ComputerTable" then
-            applyHighlight(descendant, blueColor, "ComputerHighlight", computerEspEnabled)
-        end
-    end)
-end)
-
--------------------------------
-
+--- INPUT CONTROLS ---
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end 
     
@@ -78,19 +96,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     elseif input.KeyCode == Enum.KeyCode.F2 then
         computerEspEnabled = not computerEspEnabled
-        -- Update all existing computer highlights
-        for _, desc in ipairs(workspace:GetDescendants()) do
-            if desc:IsA("Highlight") and desc.Name == "ComputerHighlight" then
-                desc.Enabled = computerEspEnabled
-            end
-        end
+        updateComputerEsp()
     end
 end)
 
 -- Initial Setup
-for _, p in ipairs(Players:GetPlayers()) do
-    setupPlayer(p)
-end
-
+for _, p in ipairs(Players:GetPlayers()) do setupPlayer(p) end
 Players.PlayerAdded:Connect(setupPlayer)
-scanForComputers(workspace)
